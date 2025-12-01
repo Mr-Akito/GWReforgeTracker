@@ -1,4 +1,4 @@
-# 🛡️ Guild Wars Reforge Quest Tracker
+# Guild Wars Reforge Quest Tracker
 
 ## Version: 1.0.1 (The "Legendary Defender" Update)
 
@@ -63,4 +63,13 @@ This tool is provided completely **FREE of charge** and is not for sale. It is a
 * This application is **NOT affiliated with, endorsed, sponsored, or approved by ArenaNet, LLC or NCSoft Corporation.**
 * "Guild Wars", "ArenaNet", and "NCSoft" are trademarks or registered trademarks of NCSoft Corporation.
 * All game content, quest names, images, and wiki text displayed within this application are the property of their respective owners and the Guild Wars Wiki community (licensed under GNU FDL 1.2).
+
 * The application's code author is Akito.
+
+<img width="1685" height="1076" alt="image" src="https://github.com/user-attachments/assets/2cc7e365-bab5-4d3d-9943-6407a3a61e50" />
+
+<img width="435" height="1011" alt="image" src="https://github.com/user-attachments/assets/45c41724-4619-4454-a5d9-70cc5a3c5c82" />
+
+<img width="383" height="238" alt="image" src="https://github.com/user-attachments/assets/2250afc5-7b71-46d7-b5dd-5b274ae421c3" />
+
+
