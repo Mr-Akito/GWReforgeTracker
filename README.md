@@ -101,10 +101,8 @@ This tool is completely **free** and is not for sale. It is an open-source, fan-
 
 ---
 
-
-<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/c2bf1e25-676e-4f08-a99a-92ccaf09f169" />
-
 <img width="1402" height="932" alt="image" src="https://github.com/user-attachments/assets/b1a2f6eb-e4c9-4df7-a289-ca04d937f2f0" />
+
 
 
 
