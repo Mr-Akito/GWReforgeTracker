@@ -70,3 +70,5 @@ This application is fan-made, open-source, and provided **free of charge**.
 * This application is **NOT affiliated with, endorsed, sponsored, or approved by ArenaNet, LLC or NCSoft Corporation.**
 * "Guild Wars", "ArenaNet", and "NCSoft" are trademarks or registered trademarks of NCSoft Corporation.
 * All game content, quest names, and wiki text are property of their respective owners and the Guild Wars Wiki community (GNU FDL 1.2).
+
+<img width="1435" height="945" alt="image" src="https://github.com/user-attachments/assets/c9073e0f-4188-40ce-8423-f73da5f82797" />
