@@ -1,113 +1,72 @@
 # Guild Wars Reforge Quest Tracker
 
-## Version: 1.0.2
+## Version: 1.0.3
 
 Created by: Akito
 
-A modern, minimalist desktop application designed to help Guild Wars players track their progress across all major Guild Wars campaigns, including **Pre-Searing** and the **Legendary Defender of Ascalon (LDoA)** path.
-
-The interface follows a clean Dark UI style and runs entirely as a local executable.
-
-Windows may show an install warning. All files are safe and the full source code is available for verification.
+A high-performance desktop quest journal and progression tracking companion for Guild Wars. Built on an **HTML5 presentation engine** (`PySide6` + `QWebEngineView` + `QWebChannel`) with visual design and fluid animation concepts inspired by **[reactbits.dev](https://reactbits.dev)** and **[animejs.com](https://animejs.com)**.
 
 ---
 
-### New Features in v1.0.2
+### Visual Overhaul, Performance, & Stability Architecture (v1.0.3)
 
-* **Direct Wiki Search:** You can now search the Guild Wars Wiki directly from the quest search bar. Type any term and press Enter.
-* **New Settings Panel:**  
-  * Export and import your progression.  
-  * Built-in update check and downloader powered by `updater.py`.  
-  * Quest History viewer.  
-  * About and Legal moved into Settings.  
-* **Old JSON Import:** Older exported progression files can now be imported into the new data structure.
-* **Keyboard Navigation Support:** General improvements for faster movement through the UI.
-* **UI Improvements:** Cleaner layout, more consistent interactions, and updated styles.
-* **Pre-Searing Support:** Complete Pre-Searing quest list added.
-* **Link Fixes:** Corrected quests that previously linked to map pages instead of the correct quest page.
-* **Removed Unnecessary Annotations:** Cleaner data loading and display.
-
----
-
-### Additional Notes for Returning Users
-
-Older versions stored quest data locally using previous category names. After updating, you may see outdated categories on first launch.
-
-To refresh them:
-
-1. Open the tracker.
-2. Click the **Sync Database** button in the bottom-left corner.
-3. The new categories and tabs will appear correctly.
+* **Configurable Low GPU / Hardware Performance Mode:**
+  * Toggleable from both the main header bar (`⚡`) and the Settings menu to reduce GPU consumption on lower-spec graphics hardware by disabling the background canvas, glass blur shaders, and continuous wave loops.
+* **Flicker-Free Display & Zero-Stutter Scrolling:**
+  * Uses offscreen pre-rendered canvas sprites, CSS content containment (`contain: content`), and surgical in-place DOM updates so toggling quest states or scrolling through 931 quests maintains smooth performance without compositor flickering.
+* **Fluid Liquid Wave Progress Bar & Real-Time Campaign Metrics:**
+  * Animated liquid fill bar with toggleable wave motion, tracking **Completed / Total** achievable quests, **In Progress** counts, and fractional percentages dynamically across every campaign.
+* **High-Contrast Dark & Light Display Modes:**
+  * Sanitizes MediaWiki inline styles and enforces 100% opaque, high-contrast typography across both Dark Mode and Light Mode.
+* **Configurable Cursor Trailing Light:**
+  * Adjustable spotlight effect (`Off`, `Subtle`, `Standard`) on top-level panels to eliminate visual distraction.
+* **Standardized Global Scrollbars:**
+  * Unified scrollbar styling and smooth scroll behavior across the quest journal, wiki reader, dropdowns, and configuration modals.
 
 ---
 
-### Download and Installation (Windows EXE)
+### Core Progression & Remediation Systems
 
-The easiest way to use the tracker is by downloading the standalone executable:
-
-1. **Download:** Get the latest `GWReforgeTracker.exe` from the **Releases page** at:  
-   https://github.com/Mr-Akito/GWReforgeTracker/releases
-2. **Run:** Place the executable anywhere and launch it. The application automatically creates the local database files it needs.
-
-#### Automatic Updater
-
-Version 1.0.2 introduces an integrated updater using `updater.py`.  
-The application can now check for the newest release and download it without opening a browser.
-
-No manual setup is required.
+1. **Character Customization & Profile Renaming:**
+   * Modify the default character name (`Default`) or rename any character profile and update their primary profession while preserving all quest history.
+2. **Tri-State Quest Synchronization (Journal <-> Dossier <-> Wiki):**
+   * Changing quest status (`Not Started`, `In Progress`, `Completed`) in the Quest Journal column, the Quest Dossier header, or the inline Wiki Entry Status Bar updates all views and inline Wiki quest link badges synchronously.
+3. **Formatted Completion Timestamps:**
+   * Records and displays completed quest timestamps in `'Month DD, YYYY, HH:MM am/pm'` format (e.g., `November 02, 2026, 06:25 pm`) on both journal cards and the quest dossier.
+4. **Mutually Exclusive Quests Lockout (Issue #6):**
+   * Automatically locks and grays out opposing mutually exclusive quests when one path is active or completed (*Red Tape* vs. *Imperial Assistance*, *Secrets in the Shadow* vs. *For a Price*, *Loyal 'til the End* vs. *Money on the Side*, *A Peaceful Solution* vs. *A Loose Cannon*, *Death with Honor* vs. *The Rite of Valor*, *A Burning Desire* vs. *Douse Your Enthusiasm*, *Refuse to Drink* vs. *Drink from the Chalice of Corruption*, *Defend Droknar's Forge* vs. *The Hero's Challenge*, *Securing the Iron Mines* vs. *Defend the Temple of War*).
+5. **Toggleable Status Color Schemes (Issue #5):**
+   * **Classic Palette:** In-Progress (Emerald Green), Completed (Guild Wars Gold).
+   * **Alternate Palette:** In-Progress (Amber Yellow), Completed (Vibrant Green).
+6. **Unified "All" Campaigns View (Issue #4) & Profession Filtering (Issue #3):**
+   * View all 931 quests across Prophecies, Factions, Nightfall, Eye of the North, Beyond, and Pre-Searing (LDoA), filtered dynamically by primary profession and hidden quest preferences.
 
 ---
+
+### Executable Deliverable
+
+* Standalone Windows executable compiled via PyInstaller:
+  `dist\GWReforgeTracker.exe`
 
 ### Building from Source
 
-If you want to run the Python source code or build the executable yourself (requires Python 3.10+ and the packages listed in `requirements.txt`):
+```powershell
+# Install requirements
+pip install PySide6 requests beautifulsoup4 pyinstaller
 
-1. **Clone the Repository:**
-    ```bash
-    git clone https://github.com/Mr-Akito/GWReforgeTracker/
-    cd GWReforgeTracker
-    ```
+# Run in development
+python main.py
 
-2. **Install Dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-3. **Run the Application:**
-    ```bash
-    python main.py
-    ```
-    *Tip: You can launch a specific profile directly:*  
-    ```bash
-    python main.py --profile "MyWarrior"
-    ```
-
-4. **Create the EXE (using PyInstaller):**
-    ```bash
-    pyinstaller --onefile --windowed --icon "GW_Icon.ico" --name "GWReforgeTracker" main.py
-    ```
-    *(Make sure `GW_Icon.ico` is in the project root.)*
+# Build single-file executable
+pyinstaller --noconfirm gw_tracker.spec
+```
 
 ---
 
 ### Legal Disclaimer
 
-This tool is completely **free** and is not for sale. It is an open-source, fan-made project.
+This application is fan-made, open-source, and provided **free of charge**.
 
-* This application is **not affiliated with, endorsed by, sponsored by, or approved by ArenaNet, LLC or NCSoft Corporation**.
+* This application is **NOT affiliated with, endorsed, sponsored, or approved by ArenaNet, LLC or NCSoft Corporation.**
 * "Guild Wars", "ArenaNet", and "NCSoft" are trademarks or registered trademarks of NCSoft Corporation.
-* All game content, quest names, images, and wiki text displayed in this application belong to their respective owners and the Guild Wars Wiki community (licensed under GNU FDL 1.2).
-* All application code was written by Akito.
-
----
-
-<img width="1402" height="932" alt="image" src="https://github.com/user-attachments/assets/b1a2f6eb-e4c9-4df7-a289-ca04d937f2f0" />
-
-
-
-
-
-
-
-
-
+* All game content, quest names, and wiki text are property of their respective owners and the Guild Wars Wiki community (GNU FDL 1.2).
