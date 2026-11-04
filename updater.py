@@ -15,7 +15,7 @@ class UpdateChecker(QThread):
 
     def run(self):
         try:
-            # 1. Fetch Latest Release Data
+            # Fetch latest release data
             response = requests.get(
                 AppConfig.GITHUB_API_LATEST, 
                 timeout=AppConfig.REQUEST_TIMEOUT,
@@ -30,7 +30,7 @@ class UpdateChecker(QThread):
             latest_tag = data.get("tag_name", "").strip().lstrip("v")
             current_ver = AppConfig.APP_VERSION.strip().lstrip("v")
             
-            # 2. Semantic Version Comparison
+            # Compare release versions
             if self._is_newer(latest_tag, current_ver):
                 assets = data.get("assets", [])
                 download_url = ""

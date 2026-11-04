@@ -1,10 +1,12 @@
 # ui/widgets.py
 import datetime
-import re
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QFrame, QLabel, QCheckBox, QLineEdit, QSizePolicy, QDialog, QApplication, QScrollArea
-from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, Signal, QSize, QEvent
-from PySide6.QtGui import QIcon
-from config import AppConfig, ThemeColors, QuestStatus, FilterMode
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QFrame, QLabel,
+    QCheckBox, QSizePolicy, QMenu
+)
+from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, Signal, QSize
+from PySide6.QtGui import QCursor, QAction
+from config import AppConfig, ThemeColors, QuestStatus, FilterMode, Professions, ColorSchemeMode, MUTUALLY_EXCLUSIVE_QUESTS
 from .style import create_custom_icon
 
 class FilterSelectorWidget(QWidget):
@@ -16,7 +18,7 @@ class FilterSelectorWidget(QWidget):
         self.current_filter = FilterMode.ALL
         
         self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.setFixedWidth(160) 
+        self.setFixedWidth(145) 
         
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
@@ -33,14 +35,14 @@ class FilterSelectorWidget(QWidget):
         btn_layout.setContentsMargins(10, 0, 10, 0)
         
         self.icon_label = QLabel()
-        self.icon_label.setPixmap(create_custom_icon("filter", ThemeColors.WHITE).pixmap(16, 16))
-        self.icon_label.setFixedSize(16, 16)
+        self.icon_label.setPixmap(create_custom_icon("filter", ThemeColors.WHITE).pixmap(14, 14))
+        self.icon_label.setFixedSize(14, 14)
         
         self.filter_label = QLabel(FilterMode.ALL)
-        self.filter_label.setStyleSheet(f"color: {ThemeColors.WHITE}; font-weight: bold; font-size: 12px; border: none; background: transparent;")
+        self.filter_label.setStyleSheet(f"color: {ThemeColors.WHITE}; font-weight: 600; font-size: 11px; border: none; background: transparent;")
         
         self.dropdown_icon = QLabel("▼")
-        self.dropdown_icon.setStyleSheet(f"color: {ThemeColors.GOLD}; font-size: 10px; border: none; background: transparent;")
+        self.dropdown_icon.setStyleSheet(f"color: {ThemeColors.GOLD}; font-size: 9px; border: none; background: transparent;")
         
         btn_layout.addWidget(self.icon_label)
         btn_layout.addWidget(self.filter_label)
@@ -49,49 +51,27 @@ class FilterSelectorWidget(QWidget):
         
         self.main_layout.addWidget(self.main_button)
         
-        # --- Wrapper (QScrollArea) ---
-        self.mask_container = QScrollArea()
-        self.mask_container.setFrameShape(QFrame.Shape.NoFrame)
-        self.mask_container.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.mask_container.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.mask_container.setWidgetResizable(True)
-        self.mask_container.setStyleSheet("background: transparent;")
-        self.mask_container.setMaximumHeight(0)
-        self.mask_container.setVisible(False)
-        
-        # --- Content ---
         self.dropdown_container = QFrame()
         self.dropdown_container.setObjectName("FilterContainer")
-        self.dropdown_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed) 
+        self.dropdown_container.setMaximumHeight(0) 
         
         self.list_layout = QVBoxLayout(self.dropdown_container)
-        self.list_layout.setContentsMargins(5, 5, 5, 5)
+        self.list_layout.setContentsMargins(4, 4, 4, 4)
         self.list_layout.setSpacing(2)
         
-        self.options = [FilterMode.ALL, FilterMode.ACTIVE_ONLY, FilterMode.NOT_STARTED, FilterMode.IN_PROGRESS, FilterMode.COMPLETED]
+        self.options = [FilterMode.ALL, FilterMode.NOT_STARTED, FilterMode.IN_PROGRESS, FilterMode.COMPLETED]
         for opt in self.options:
             btn = QPushButton(opt)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setFixedHeight(28) 
+            btn.setFixedHeight(26) 
             btn.clicked.connect(lambda checked, o=opt: self.select_filter(o))
             self.list_layout.addWidget(btn)
 
-        self.mask_container.setWidget(self.dropdown_container)
-        self.main_layout.addWidget(self.mask_container)
+        self.main_layout.addWidget(self.dropdown_container)
         
-        self.animation = QPropertyAnimation(self.mask_container, b"maximumHeight")
-        self.animation.setDuration(250)
-        self.animation.setEasingCurve(QEasingCurve.Type.OutCubic) 
-        self.animation.finished.connect(self._on_animation_finished)
-
-        if QApplication.instance():
-            QApplication.instance().installEventFilter(self)
-
-    def eventFilter(self, obj, event):
-        if self.is_expanded and event.type() == QEvent.Type.MouseButtonPress:
-            if not self.rect().contains(self.mapFromGlobal(event.globalPosition().toPoint())):
-                self.collapse_menu()
-        return super().eventFilter(obj, event)
+        self.animation = QPropertyAnimation(self.dropdown_container, b"maximumHeight")
+        self.animation.setDuration(140)
+        self.animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
 
     def toggle_menu(self):
         if self.is_expanded: self.collapse_menu()
@@ -99,43 +79,20 @@ class FilterSelectorWidget(QWidget):
             
     def expand_menu(self):
         self.dropdown_icon.setText("▲") 
-        self.mask_container.setVisible(True)
-        
-        self.dropdown_container.adjustSize()
-        target_h = self.dropdown_container.sizeHint().height()
-        
-        self.mask_container.setMinimumHeight(0)
-        self.mask_container.setMaximumHeight(0) 
-        
+        target_h = (len(self.options) * 28) + 8 
         self.animation.stop()
-        self.animation.setStartValue(0)
+        self.animation.setStartValue(self.dropdown_container.height())
         self.animation.setEndValue(target_h)
         self.animation.start()
         self.is_expanded = True
-        self.main_button.setStyleSheet(self.main_button.styleSheet().replace("border-radius: 12px;", "border-top-left-radius: 12px; border-top-right-radius: 12px; border-bottom-left-radius: 0; border-bottom-right-radius: 0;"))
     
     def collapse_menu(self):
         if not self.is_expanded: return
         self.dropdown_icon.setText("▼")
-        
-        current_h = self.mask_container.height()
-        self.mask_container.setMinimumHeight(0)
-        self.mask_container.setMaximumHeight(current_h)
-        
-        self.animation.setStartValue(current_h)
+        self.animation.setStartValue(self.dropdown_container.height())
         self.animation.setEndValue(0)
         self.animation.start()
         self.is_expanded = False
-        self.main_button.setStyleSheet(self.main_button.styleSheet().replace("border-top-left-radius: 12px; border-top-right-radius: 12px; border-bottom-left-radius: 0; border-bottom-right-radius: 0;", "border-radius: 12px;"))
-
-    def _on_animation_finished(self):
-        if self.is_expanded:
-            self.dropdown_container.adjustSize()
-            h = self.dropdown_container.sizeHint().height()
-            self.mask_container.setMinimumHeight(h)
-            self.mask_container.setMaximumHeight(h)
-        else:
-            self.mask_container.setVisible(False)
 
     def select_filter(self, mode):
         self.current_filter = mode
@@ -143,15 +100,17 @@ class FilterSelectorWidget(QWidget):
         self.filter_changed.emit(mode)
         self.collapse_menu()
 
-class CampaignSelectorWidget(QWidget):
-    campaign_changed = Signal(str)
+
+class ProfessionSelectorWidget(QWidget):
+    profession_changed = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.is_expanded = False
-        self.current_campaign = ""
+        self.current_profession = Professions.ALL
         
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.setFixedWidth(145) 
         
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
@@ -159,81 +118,52 @@ class CampaignSelectorWidget(QWidget):
         self.main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         
         self.main_button = QPushButton()
-        self.main_button.setObjectName("ProfileMainBtn")
+        self.main_button.setObjectName("ProfessionMainBtn")
         self.main_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.main_button.clicked.connect(self.toggle_menu)
-        self.main_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.main_button.setFixedHeight(45) 
+        self.main_button.setFixedHeight(36)
         
         btn_layout = QHBoxLayout(self.main_button)
-        btn_layout.setContentsMargins(15, 0, 15, 0)
+        btn_layout.setContentsMargins(10, 0, 10, 0)
         
-        self.camp_label = QLabel("")
-        self.camp_label.setStyleSheet(f"color: {ThemeColors.GOLD}; font-weight: bold; font-size: 16px; border: none; background: transparent; text-transform: uppercase; letter-spacing: 1px;")
+        self.icon_label = QLabel()
+        self.icon_label.setPixmap(create_custom_icon("user", ThemeColors.GOLD).pixmap(14, 14))
+        self.icon_label.setFixedSize(14, 14)
+        
+        self.prof_label = QLabel("Class: All")
+        self.prof_label.setStyleSheet(f"color: {ThemeColors.WHITE}; font-weight: 600; font-size: 11px; border: none; background: transparent;")
         
         self.dropdown_icon = QLabel("▼")
-        self.dropdown_icon.setStyleSheet(f"color: {ThemeColors.GOLD}; font-size: 12px; border: none; background: transparent;")
+        self.dropdown_icon.setStyleSheet(f"color: {ThemeColors.GOLD}; font-size: 9px; border: none; background: transparent;")
         
-        btn_layout.addWidget(self.camp_label)
+        btn_layout.addWidget(self.icon_label)
+        btn_layout.addWidget(self.prof_label)
         btn_layout.addStretch() 
         btn_layout.addWidget(self.dropdown_icon)
         
         self.main_layout.addWidget(self.main_button)
         
-        # --- Wrapper ---
-        self.mask_container = QScrollArea()
-        self.mask_container.setFrameShape(QFrame.Shape.NoFrame)
-        self.mask_container.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.mask_container.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.mask_container.setWidgetResizable(True)
-        self.mask_container.setStyleSheet("background: transparent;")
-        self.mask_container.setMaximumHeight(0)
-        self.mask_container.setVisible(False)
-        
-        # --- Content ---
         self.dropdown_container = QFrame()
-        self.dropdown_container.setObjectName("ProfileContainer")
-        self.dropdown_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed) 
+        self.dropdown_container.setObjectName("ProfessionContainer")
+        self.dropdown_container.setMaximumHeight(0) 
         
         self.list_layout = QVBoxLayout(self.dropdown_container)
-        self.list_layout.setContentsMargins(5, 5, 5, 5)
+        self.list_layout.setContentsMargins(4, 4, 4, 4)
         self.list_layout.setSpacing(2)
         
-        self.mask_container.setWidget(self.dropdown_container)
-        self.main_layout.addWidget(self.mask_container)
-        
-        self.animation = QPropertyAnimation(self.mask_container, b"maximumHeight")
-        self.animation.setDuration(250)
-        self.animation.setEasingCurve(QEasingCurve.Type.OutCubic) 
-        self.animation.finished.connect(self._on_animation_finished)
-
-        if QApplication.instance():
-            QApplication.instance().installEventFilter(self)
-
-    def eventFilter(self, obj, event):
-        if self.is_expanded and event.type() == QEvent.Type.MouseButtonPress:
-            if not self.rect().contains(self.mapFromGlobal(event.globalPosition().toPoint())):
-                self.collapse_menu()
-        return super().eventFilter(obj, event)
-        
-    def update_options(self, campaigns, current):
-        self.current_campaign = current
-        self.camp_label.setText(current)
-        
-        while self.list_layout.count():
-            child = self.list_layout.takeAt(0)
-            if child.widget(): child.widget().deleteLater()
-        
-        for c in campaigns:
-            if c == current: continue
-            btn = QPushButton(c)
+        self.options = Professions.ALL_LIST
+        for opt in self.options:
+            btn = QPushButton(opt)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setFixedHeight(35)
-            btn.clicked.connect(lambda checked, name=c: self.select_campaign(name))
+            btn.setFixedHeight(24) 
+            btn.clicked.connect(lambda checked, o=opt: self.select_profession(o))
             self.list_layout.addWidget(btn)
+
+        self.main_layout.addWidget(self.dropdown_container)
         
-        self.dropdown_container.adjustSize()
-        if self.is_expanded: self.expand_menu()
+        self.animation = QPropertyAnimation(self.dropdown_container, b"maximumHeight")
+        self.animation.setDuration(160)
+        self.animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
 
     def toggle_menu(self):
         if self.is_expanded: self.collapse_menu()
@@ -241,49 +171,33 @@ class CampaignSelectorWidget(QWidget):
             
     def expand_menu(self):
         self.dropdown_icon.setText("▲") 
-        self.mask_container.setVisible(True)
-        
-        if self.list_layout.count() <= 0: return
-        
-        self.dropdown_container.adjustSize()
-        target_h = self.dropdown_container.sizeHint().height()
-        self.mask_container.setMinimumHeight(0)
-        self.mask_container.setMaximumHeight(0)
-        
+        target_h = (len(self.options) * 26) + 8 
         self.animation.stop()
-        self.animation.setStartValue(0)
+        self.animation.setStartValue(self.dropdown_container.height())
         self.animation.setEndValue(target_h)
         self.animation.start()
         self.is_expanded = True
-        self.main_button.setStyleSheet(self.main_button.styleSheet().replace("border-radius: 12px;", "border-top-left-radius: 12px; border-top-right-radius: 12px; border-bottom-left-radius: 0; border-bottom-right-radius: 0;"))
     
     def collapse_menu(self):
         if not self.is_expanded: return
         self.dropdown_icon.setText("▼")
-        
-        current_h = self.mask_container.height()
-        self.mask_container.setMinimumHeight(0)
-        self.mask_container.setMaximumHeight(current_h)
-        
-        self.animation.setStartValue(current_h)
+        self.animation.setStartValue(self.dropdown_container.height())
         self.animation.setEndValue(0)
         self.animation.start()
         self.is_expanded = False
-        self.main_button.setStyleSheet(self.main_button.styleSheet().replace("border-top-left-radius: 12px; border-top-right-radius: 12px; border-bottom-left-radius: 0; border-bottom-right-radius: 0;", "border-radius: 12px;"))
 
-    def _on_animation_finished(self):
-        if self.is_expanded:
-            self.dropdown_container.adjustSize()
-            h = self.dropdown_container.sizeHint().height()
-            self.mask_container.setMinimumHeight(h)
-            self.mask_container.setMaximumHeight(h)
-        else:
-            self.mask_container.setVisible(False)
-
-    def select_campaign(self, name):
-        self.current_campaign = name
-        self.campaign_changed.emit(name)
+    def select_profession(self, prof):
+        self.current_profession = prof
+        display = "Class: All" if prof == Professions.ALL else prof
+        self.prof_label.setText(display)
+        self.profession_changed.emit(prof)
         self.collapse_menu()
+
+    def set_profession(self, prof):
+        self.current_profession = prof
+        display = "Class: All" if prof == Professions.ALL else prof
+        self.prof_label.setText(display)
+
 
 class ProfileSelectorWidget(QWidget):
     profile_changed = Signal(str)
@@ -291,7 +205,6 @@ class ProfileSelectorWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.is_expanded = False
-        
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         
         self.main_layout = QVBoxLayout(self)
@@ -304,16 +217,16 @@ class ProfileSelectorWidget(QWidget):
         self.main_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.main_button.clicked.connect(self.toggle_menu)
         self.main_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.main_button.setFixedHeight(40) 
+        self.main_button.setFixedHeight(38) 
         
         btn_layout = QHBoxLayout(self.main_button)
-        btn_layout.setContentsMargins(15, 0, 15, 0)
+        btn_layout.setContentsMargins(14, 0, 14, 0)
         
         self.profile_name_label = QLabel("")
-        self.profile_name_label.setStyleSheet(f"color: {ThemeColors.WHITE}; font-weight: bold; font-size: 14px; border: none; background: transparent;")
+        self.profile_name_label.setStyleSheet(f"color: {ThemeColors.WHITE}; font-weight: bold; font-size: 13px; border: none; background: transparent;")
         
         self.dropdown_icon = QLabel("▼")
-        self.dropdown_icon.setStyleSheet(f"color: {ThemeColors.GOLD}; font-size: 12px; border: none; background: transparent;")
+        self.dropdown_icon.setStyleSheet(f"color: {ThemeColors.GOLD}; font-size: 10px; border: none; background: transparent;")
         
         btn_layout.addWidget(self.profile_name_label)
         btn_layout.addStretch() 
@@ -321,44 +234,26 @@ class ProfileSelectorWidget(QWidget):
         
         self.main_layout.addWidget(self.main_button)
         
-        # --- Wrapper ---
-        self.mask_container = QScrollArea()
-        self.mask_container.setFrameShape(QFrame.Shape.NoFrame)
-        self.mask_container.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.mask_container.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.mask_container.setWidgetResizable(True)
-        self.mask_container.setStyleSheet("background: transparent;")
-        self.mask_container.setMaximumHeight(0)
-        self.mask_container.setVisible(False)
-        
-        # --- Content ---
         self.dropdown_container = QFrame()
         self.dropdown_container.setObjectName("ProfileContainer")
-        self.dropdown_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed) 
+        self.dropdown_container.setMaximumHeight(0) 
         
         self.list_layout = QVBoxLayout(self.dropdown_container)
-        self.list_layout.setContentsMargins(5, 5, 5, 5)
+        self.list_layout.setContentsMargins(4, 4, 4, 4)
         self.list_layout.setSpacing(2)
         
-        self.mask_container.setWidget(self.dropdown_container)
-        self.main_layout.addWidget(self.mask_container)
+        self.main_layout.addWidget(self.dropdown_container)
         
-        self.animation = QPropertyAnimation(self.mask_container, b"maximumHeight")
-        self.animation.setDuration(250)
-        self.animation.setEasingCurve(QEasingCurve.Type.OutCubic) 
-        self.animation.finished.connect(self._on_animation_finished)
-
-        if QApplication.instance():
-            QApplication.instance().installEventFilter(self)
-
-    def eventFilter(self, obj, event):
-        if self.is_expanded and event.type() == QEvent.Type.MouseButtonPress:
-            if not self.rect().contains(self.mapFromGlobal(event.globalPosition().toPoint())):
-                self.collapse_menu()
-        return super().eventFilter(obj, event)
+        self.animation = QPropertyAnimation(self.dropdown_container, b"maximumHeight")
+        self.animation.setDuration(160)
+        self.animation.setEasingCurve(QEasingCurve.Type.OutQuad)
         
-    def update_state(self, profiles, current_profile):
-        self.profile_name_label.setText(current_profile)
+    def update_state(self, profiles, current_profile, profession=None):
+        display_name = current_profile
+        if profession and profession != Professions.ALL:
+            display_name = f"{current_profile} ({profession})"
+        self.profile_name_label.setText(display_name)
+        
         while self.list_layout.count():
             child = self.list_layout.takeAt(0)
             if child.widget(): child.widget().deleteLater()
@@ -367,114 +262,123 @@ class ProfileSelectorWidget(QWidget):
             if p == current_profile: continue 
             btn = QPushButton(p)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setFixedHeight(30)
+            btn.setFixedHeight(28) 
             btn.clicked.connect(lambda checked, name=p: self.select_profile(name))
             self.list_layout.addWidget(btn)
         self.dropdown_container.adjustSize()
         if self.is_expanded: self.expand_menu()
-
+             
     def toggle_menu(self):
         if self.is_expanded: self.collapse_menu()
         else: self.expand_menu()
             
     def expand_menu(self):
         self.dropdown_icon.setText("▲") 
-        self.mask_container.setVisible(True)
-        
-        if self.list_layout.count() <= 0:
+        count = self.list_layout.count() 
+        if count <= 0:
             self.collapse_menu(); return
-            
-        self.dropdown_container.adjustSize()
-        target_h = self.dropdown_container.sizeHint().height()
-        self.mask_container.setMinimumHeight(0)
-        self.mask_container.setMaximumHeight(0)
-        
+        target_h = (count * 30) + 8 
         self.animation.stop()
-        self.animation.setStartValue(0)
+        self.animation.setStartValue(self.dropdown_container.height())
         self.animation.setEndValue(target_h)
         self.animation.start()
         self.is_expanded = True
-        self.main_button.setStyleSheet(self.main_button.styleSheet().replace("border-radius: 12px;", "border-top-left-radius: 12px; border-top-right-radius: 12px; border-bottom-left-radius: 0; border-bottom-right-radius: 0;"))
     
     def collapse_menu(self):
         if not self.is_expanded: return
         self.dropdown_icon.setText("▼")
-        
-        current_h = self.mask_container.height()
-        self.mask_container.setMinimumHeight(0)
-        self.mask_container.setMaximumHeight(current_h)
-        
-        self.animation.setStartValue(current_h)
+        self.animation.setStartValue(self.dropdown_container.height())
         self.animation.setEndValue(0)
         self.animation.start()
         self.is_expanded = False
-        self.main_button.setStyleSheet(self.main_button.styleSheet().replace("border-top-left-radius: 12px; border-top-right-radius: 12px; border-bottom-left-radius: 0; border-bottom-right-radius: 0;", "border-radius: 12px;"))
-
-    def _on_animation_finished(self):
-        if self.is_expanded:
-            self.dropdown_container.adjustSize()
-            h = self.dropdown_container.sizeHint().height()
-            self.mask_container.setMinimumHeight(h)
-            self.mask_container.setMaximumHeight(h)
-        else:
-            self.mask_container.setVisible(False)
 
     def select_profile(self, name):
         self.profile_changed.emit(name)
         self.collapse_menu()
-        
+
+
 class QuestWidget(QFrame):
     status_changed = Signal(str, int)
-    request_load = Signal(str, object) 
+    request_load = Signal(str)
+    hide_toggled = Signal(str, bool)
+    current_selected = None
 
-    def __init__(self, name, data, parent=None):
+    def __init__(self, name, data, metadata=None, color_scheme=ColorSchemeMode.CLASSIC, parent=None):
         super().__init__(parent)
+        self.quest_name = name
         self.original_index = 0
-        self.is_highlighted = False
+        self.color_scheme = color_scheme
+        self.metadata = metadata or {}
+        self.is_locked = False
+        self.conflicting_quest = ""
+        self.is_hidden = False
         
         self.status = data.get("status", QuestStatus.NOT_STARTED) if isinstance(data, dict) else QuestStatus.NOT_STARTED
-        self.timestamp = data.get("timestamp") if isinstance(data, dict) else None 
+        self.timestamp = data.get("timestamp") if isinstance(data, dict) else None
+        self.is_hidden = data.get("is_hidden", False) if isinstance(data, dict) else False
         
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 4, 0, 4) 
-        layout.setSpacing(10)
+        layout.setContentsMargins(0, 3, 0, 3) 
+        layout.setSpacing(8)
 
         self.checkbox = QCheckBox()
         self.checkbox.setTristate(True) 
         self.checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.checkbox.setFixedWidth(24) 
+        self.checkbox.setFixedWidth(22) 
         self._update_check_state()
         self.checkbox.stateChanged.connect(self._on_check_change)
         
         text_layout = QVBoxLayout()
         text_layout.setSpacing(2)
-        text_layout.setContentsMargins(0,0,0,0)
+        text_layout.setContentsMargins(0, 0, 0, 0)
         
         self.quest_button = QPushButton(name)
         self.quest_button.setObjectName("QuestLabel")
         self.quest_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.quest_button.clicked.connect(self._on_click) 
         self.quest_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.quest_button.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.quest_button.customContextMenuRequested.connect(self._show_context_menu)
+        
         text_layout.addWidget(self.quest_button)
         
         self.timestamp_label = QLabel("")
         self.timestamp_label.setObjectName("TimeLabel")
         self.timestamp_label.setVisible(False)
-        
         text_layout.addWidget(self.timestamp_label)
+        
         layout.addWidget(self.checkbox)
         layout.addLayout(text_layout)
         layout.addStretch() 
         self._update_style()
 
-    def refresh_data(self, data):
+    def set_color_scheme(self, scheme):
+        self.color_scheme = scheme
+        self._update_style()
+
+    def set_locked(self, is_locked, conflicting_quest=""):
+        self.is_locked = is_locked
+        self.conflicting_quest = conflicting_quest
+        self.checkbox.setEnabled(not is_locked)
+        self._update_style()
+
+    def refresh_data(self, data, is_locked=False, conflicting_quest=""):
         self.status = data.get("status", QuestStatus.NOT_STARTED)
         self.timestamp = data.get("timestamp")
+        self.is_hidden = data.get("is_hidden", False)
+        self.is_locked = is_locked
+        self.conflicting_quest = conflicting_quest
+        self.checkbox.setEnabled(not is_locked)
         
         self._update_check_state()
         self._update_style()
-        self._update_timestamp_visibility()
-             
+        
+        if QuestWidget.current_selected != self:
+            self.timestamp_label.setVisible(False)
+        elif self.status == QuestStatus.COMPLETED:
+            self._set_timestamp_label()
+            self.timestamp_label.setVisible(True)
+
     def _update_check_state(self):
         self.checkbox.blockSignals(True)
         if self.status == QuestStatus.COMPLETED: 
@@ -483,68 +387,146 @@ class QuestWidget(QFrame):
             self.checkbox.setCheckState(Qt.CheckState.PartiallyChecked)
         else: 
             self.checkbox.setCheckState(Qt.CheckState.Unchecked)
-            
         self.checkbox.blockSignals(False)
 
     def _on_check_change(self, state):
-        if state == Qt.CheckState.Checked.value:
-            self.status = QuestStatus.COMPLETED
-        elif state == Qt.CheckState.PartiallyChecked.value:
-            self.status = QuestStatus.IN_PROGRESS
+        if self.is_locked:
+            self._update_check_state()
+            return
+            
+        if self.status == QuestStatus.NOT_STARTED:
+            new_status = QuestStatus.IN_PROGRESS
+        elif self.status == QuestStatus.IN_PROGRESS:
+            new_status = QuestStatus.COMPLETED
         else:
-            self.status = QuestStatus.NOT_STARTED
+            new_status = QuestStatus.NOT_STARTED
         
+        self.status = new_status
         self._update_style()
+        self._update_check_state()
+        self.status_changed.emit(self.quest_name, self.status)
         
         if self.status == QuestStatus.COMPLETED:
-             self.timestamp = datetime.datetime.now().strftime(AppConfig.DATE_FORMAT)
-             self._set_timestamp_label_text()
+            self.timestamp = datetime.datetime.now().strftime(AppConfig.DATE_FORMAT)
+            self._set_timestamp_label()
+            self.timestamp_label.setVisible(True)
         else:
-             self.timestamp = None
-        
-        self._update_timestamp_visibility()
-        
-        self.status_changed.emit(self.quest_button.text(), self.status)
-             
-    def _set_timestamp_label_text(self):
+            self.timestamp = None
+            self.timestamp_label.setVisible(False) 
+
+    def _set_timestamp_label(self):
         if self.timestamp:
             self.timestamp_label.setText(f"Completed: {self.timestamp}")
         else:
             self.timestamp_label.setText("Completed") 
 
     def _on_click(self):
-        self.request_load.emit(self.quest_button.text(), self)
+        self.request_load.emit(self.quest_name)
+        if QuestWidget.current_selected and QuestWidget.current_selected != self:
+            QuestWidget.current_selected.timestamp_label.setVisible(False)
+        QuestWidget.current_selected = self
+        self.timestamp_label.setVisible(self.status == QuestStatus.COMPLETED)
+        if self.status == QuestStatus.COMPLETED:
+            self._set_timestamp_label()
 
-    def set_highlighted(self, active):
-        self.is_highlighted = active
-        self._update_timestamp_visibility()
+    def _show_context_menu(self, pos):
+        menu = QMenu(self)
+        
+        wiki_act = menu.addAction("Open Wiki Details")
+        wiki_act.triggered.connect(self._on_click)
+        menu.addSeparator()
+        
+        not_started_act = menu.addAction("Mark as Not Started")
+        not_started_act.triggered.connect(lambda: self._set_status_direct(QuestStatus.NOT_STARTED))
+        
+        in_prog_act = menu.addAction("Mark as In Progress")
+        in_prog_act.triggered.connect(lambda: self._set_status_direct(QuestStatus.IN_PROGRESS))
+        
+        comp_act = menu.addAction("Mark as Completed")
+        comp_act.triggered.connect(lambda: self._set_status_direct(QuestStatus.COMPLETED))
+        
+        if self.is_locked:
+            comp_act.setEnabled(False)
+            in_prog_act.setEnabled(False)
+        
+        menu.addSeparator()
+        hide_act = menu.addAction("Unhide Quest" if self.is_hidden else "Hide Quest")
+        hide_act.triggered.connect(self._toggle_hide)
+        
+        menu.exec(QCursor.pos())
 
-    def _update_timestamp_visibility(self):
-        if self.status == QuestStatus.COMPLETED and self.is_highlighted:
-            self._set_timestamp_label_text()
+    def _set_status_direct(self, new_status):
+        if self.is_locked and new_status != QuestStatus.NOT_STARTED:
+            return
+        self.status = new_status
+        self._update_style()
+        self._update_check_state()
+        self.status_changed.emit(self.quest_name, self.status)
+        if self.status == QuestStatus.COMPLETED:
+            self.timestamp = datetime.datetime.now().strftime(AppConfig.DATE_FORMAT)
+            self._set_timestamp_label()
             self.timestamp_label.setVisible(True)
         else:
+            self.timestamp = None
             self.timestamp_label.setVisible(False)
 
+    def _toggle_hide(self):
+        self.is_hidden = not self.is_hidden
+        self.hide_toggled.emit(self.quest_name, self.is_hidden)
+
     def _update_style(self):
+        status_colors = ThemeColors.get_status_colors(self.color_scheme)
+        in_prog_color = status_colors["in_progress"]
+        comp_color = status_colors["completed"]
+        in_prog_bg = status_colors["in_progress_bg"]
+        comp_bg = status_colors["completed_bg"]
+        
+        # Locked by mutual exclusion
+        if self.is_locked:
+            label_text = f"🔒 {self.quest_name} (Locked)"
+            self.quest_button.setText(label_text)
+            self.quest_button.setToolTip(f"Mutually exclusive with '{self.conflicting_quest}' which is already completed.")
+            self.quest_button.setStyleSheet(f"""
+                QPushButton#QuestLabel {{
+                    background-color: rgba(40, 40, 48, 0.4);
+                    color: #666670;
+                    border: 1px dashed #444450;
+                    border-radius: 16px;
+                    text-align: left;
+                    padding: 7px 14px;
+                    font-style: italic;
+                }}
+            """)
+            return
+
+        self.quest_button.setText(self.quest_name)
+        prof_req = self.metadata.get("profession", "") if self.metadata else ""
+        tip = f"Profession: {prof_req.title()}" if prof_req else "Available to all professions"
+        self.quest_button.setToolTip(tip)
+
         if self.status == QuestStatus.COMPLETED:
             self.quest_button.setStyleSheet(f"""
                 QPushButton#QuestLabel {{
-                    background-color: rgba(212, 175, 55, 0.15); color: #888; text-decoration: line-through;
-                    border: 1px solid {ThemeColors.GOLD}; border-radius: 18px; text-align: left; padding: 8px 15px; max-width: 315px;
-                }}
-                QPushButton#QuestLabel:focus {{
-                    border: 2px solid {ThemeColors.GOLD};
+                    background-color: {comp_bg};
+                    color: #909095;
+                    text-decoration: line-through;
+                    border: 1px solid {comp_color};
+                    border-radius: 16px;
+                    text-align: left;
+                    padding: 7px 14px;
                 }}
             """)
         elif self.status == QuestStatus.IN_PROGRESS:
             self.quest_button.setStyleSheet(f"""
                 QPushButton#QuestLabel {{
-                    background-color: rgba(76, 175, 80, 0.15); color: {ThemeColors.GREEN}; font-style: italic;
-                    border: 1px solid {ThemeColors.GREEN}; border-radius: 18px; text-align: left; padding: 8px 15px; max-width: 315px;
-                }}
-                QPushButton#QuestLabel:focus {{
-                    border: 2px solid {ThemeColors.GREEN};
+                    background-color: {in_prog_bg};
+                    color: {in_prog_color};
+                    font-style: italic;
+                    font-weight: 600;
+                    border: 1px solid {in_prog_color};
+                    border-radius: 16px;
+                    text-align: left;
+                    padding: 7px 14px;
                 }}
             """)
         else:

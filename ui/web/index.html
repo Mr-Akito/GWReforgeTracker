@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Guild Wars Reforge Quest Tracker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="theme-dark scheme-classic">
+  <!-- Aurora Background Canvas (Hardware-Friendly Ambient Animation) -->
+  <canvas id="aurora-canvas"></canvas>
+
+  <div id="app-container">
+    <!-- LEFT PANEL: QUEST JOURNAL -->
+    <aside class="journal-panel spotlight-panel" id="journal-card">
+      <div class="panel-header">
+        <div class="brand">
+          <div class="brand-crest">
+            <svg viewBox="-1 -1 26 26" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" shape-rendering="geometricPrecision" overflow="visible">
+              <path d="M12 2L3.5 6.5v5.5c0 5.2 3.6 10.1 8.5 11.5 4.9-1.4 8.5-6.3 8.5-11.5V6.5L12 2z"/>
+              <path d="M12 8v8M8 12h8"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <h1 class="brand-title">QUEST JOURNAL</h1>
+            <span class="brand-version">v1.0.3 &bull; REFORGED</span>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <button class="icon-btn" id="btn-theme-toggle" title="Toggle Dark/Light Display Mode">
+            <svg id="theme-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" shape-rendering="geometricPrecision">
+              <path d="M12 3a9 9 0 109 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 01-4.4 2.26 5.403 5.403 0 01-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/>
+            </svg>
+          </button>
+          <div class="settings-btn-anchor">
+            <button class="icon-btn" id="btn-settings" title="Settings &amp; Configuration">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" shape-rendering="geometricPrecision">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+              </svg>
+            </button>
+
+            <!-- Settings Guide Callout -->
+            <div class="settings-guide-callout" id="settings-guide-callout" style="display: none;">
+              <div class="callout-arrow"></div>
+              <div class="callout-card">
+                <div class="callout-header">
+                  <span class="callout-badge">Tip</span>
+                  <strong>Preferences &amp; Settings</strong>
+                </div>
+                <p>You can adjust display colors, profession filters, Low GPU mode, or character settings anytime right here!</p>
+                <button class="callout-dismiss-btn" id="btn-dismiss-callout">Got it!</button>
+              </div>
+            </div>
+          </div>
+          <button class="icon-btn" id="btn-release-notes" title="Release Notes &amp; Updates (GitHub)">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" shape-rendering="geometricPrecision">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <line x1="10" y1="9" x2="8" y2="9"/>
+            </svg>
+          </button>
+          <button class="icon-btn" id="btn-about" title="About &amp; Legal Notice">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" shape-rendering="geometricPrecision">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- CHARACTER PROFILE BAR -->
+      <div class="profile-section">
+        <div class="profile-dropdown-wrapper">
+          <button class="profile-btn" id="profile-selector-btn" title="Switch Active Character">
+            <div class="profile-btn-info">
+              <span class="profile-label-tag">CHARACTER</span>
+              <span class="profile-active-name" id="profile-name-display">Default</span>
+            </div>
+            <span class="dropdown-chevron">▼</span>
+          </button>
+          <div class="profile-dropdown-menu select-menu-animated" id="profile-dropdown-menu"></div>
+        </div>
+
+        <button class="tool-btn" id="btn-edit-profile" title="Edit / Rename Character Name &amp; Profession">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" shape-rendering="geometricPrecision">
+            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </button>
+        <button class="tool-btn" id="btn-new-profile" title="Create New Character Profile">+</button>
+        <button class="tool-btn tool-danger" id="btn-delete-profile" title="Delete Character Profile">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" shape-rendering="geometricPrecision">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- FILTER CONTROLS -->
+      <div class="filter-controls-row">
+        <!-- Status Dropdown -->
+        <div class="custom-select-wrapper" id="status-filter-wrapper">
+          <button class="select-btn" id="status-filter-btn">
+            <span class="select-icon">◎</span>
+            <span class="select-val" id="status-filter-label">All Quests</span>
+            <span class="select-chevron">▼</span>
+          </button>
+          <div class="select-menu select-menu-animated" id="status-filter-menu">
+            <div class="select-item active" data-value="All Quests">All Quests</div>
+            <div class="select-item" data-value="Not Started">Not Started</div>
+            <div class="select-item" data-value="In Progress">In Progress</div>
+            <div class="select-item" data-value="Completed">Completed</div>
+          </div>
+        </div>
+
+        <!-- Profession Dropdown -->
+        <div class="custom-select-wrapper" id="prof-filter-wrapper">
+          <button class="select-btn" id="prof-filter-btn">
+            <span class="select-icon">⚔</span>
+            <span class="select-val" id="prof-filter-label">Class: All</span>
+            <span class="select-chevron">▼</span>
+          </button>
+          <div class="select-menu select-menu-animated" id="prof-filter-menu"></div>
+        </div>
+      </div>
+
+      <!-- SEARCH BAR -->
+      <div class="search-bar-row">
+        <div class="search-input-box">
+          <svg class="search-lens" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" shape-rendering="geometricPrecision">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" id="search-input" placeholder="Search quests, regions, or outposts..." autocomplete="off">
+          <button class="search-clear-btn" id="btn-search-clear" title="Clear Search">✕</button>
+        </div>
+      </div>
+
+      <!-- SLIDING CAMPAIGN TABS -->
+      <div class="campaign-nav-container">
+        <div class="campaign-nav-track" id="campaign-nav-track">
+          <div class="tab-pill-slider" id="tab-pill-slider"></div>
+          <button class="tab-item active" data-campaign="All">All</button>
+          <button class="tab-item" data-campaign="Prophecies">Prophecies</button>
+          <button class="tab-item" data-campaign="Factions">Factions</button>
+          <button class="tab-item" data-campaign="Nightfall">Nightfall</button>
+          <button class="tab-item" data-campaign="Eye of the North">EotN</button>
+          <button class="tab-item" data-campaign="Beyond">Beyond</button>
+          <button class="tab-item" data-campaign="LDoA">LDoA</button>
+        </div>
+      </div>
+
+      <!-- QUEST LIST VIEWPORT -->
+      <div class="quest-list-viewport" id="quest-list-viewport">
+        <div class="quest-list-scroll" id="quest-list-scroll"></div>
+      </div>
+
+      <!-- CAMPAIGN RESET BAR -->
+      <div class="campaign-reset-bar">
+        <span class="visible-count-label" id="visible-count-label">Showing 0 quests</span>
+        <button class="btn-subtle-reset" id="btn-reset-campaign">
+          Reset <span id="reset-campaign-label">All</span> Quests
+        </button>
+      </div>
+
+      <!-- FOOTER: FLUID LIQUID PROGRESS BAR -->
+      <div class="journal-footer">
+        <div class="progress-stats-row">
+          <div class="progress-title-group">
+            <span class="progress-title" id="progress-campaign-title">ALL CAMPAIGNS PROGRESSION</span>
+            <span class="progress-in-prog-pill" id="in-progress-count-text">0 In Progress</span>
+          </div>
+          <div class="progress-counter-box">
+            <span class="progress-percent" id="liquid-percent-text">0%</span>
+            <span class="progress-ratio" id="liquid-ratio-text">0 / 0</span>
+          </div>
+        </div>
+
+        <!-- FLUID LIQUID BAR -->
+        <div class="fluid-bar-container" id="fluid-progress-bar">
+          <div class="fluid-liquid-track">
+            <div class="fluid-liquid-fill" id="fluid-liquid-fill" style="width: 0%;">
+              <div class="liquid-wave-layer wave-front"></div>
+              <div class="liquid-wave-layer wave-back"></div>
+              <div class="liquid-shimmer"></div>
+              <div class="liquid-glow-edge"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SYNC DATABASE BUTTON -->
+        <button class="sync-action-btn" id="btn-sync-db">
+          <svg class="sync-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" shape-rendering="geometricPrecision">
+            <polyline points="23 4 23 10 17 10"/>
+            <polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+          <span id="sync-btn-label">Sync Database from Wiki</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- RIGHT PANEL: QUEST DOSSIER & INTERNAL WIKI VIEWER -->
+    <main class="dossier-panel spotlight-panel" id="dossier-card">
+      <!-- WELCOME HERO STATE -->
+      <div class="dossier-welcome" id="dossier-welcome">
+        <div class="hero-crest-container">
+          <div class="hero-crest-glow"></div>
+          <svg class="hero-crest-svg" viewBox="-1 -1 26 26" width="76" height="76" fill="none" stroke="currentColor" stroke-width="1.6" shape-rendering="geometricPrecision" overflow="visible">
+            <path d="M12 2L3.5 6.5v5.5c0 5.2 3.6 10.1 8.5 11.5 4.9-1.4 8.5-6.3 8.5-11.5V6.5L12 2z"/>
+            <path d="M12 8v8M8 12h8"/>
+          </svg>
+        </div>
+        <h2 class="welcome-heading">GUILD WARS REFORGED</h2>
+        <p class="welcome-subheading">TACTICAL QUEST JOURNAL &amp; PROGRESSION COMPENDIUM</p>
+        <p class="welcome-hint">Select any quest from the journal on the left to inspect walkthrough intelligence, synchronize completion status, and track campaign mastery.</p>
+
+        <div class="welcome-feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🛡</div>
+            <h3>Mutually Exclusive Locks</h3>
+            <p>Automatically detects divergent quest paths (such as <i>Red Tape</i> vs. <i>Imperial Assistance</i>) and locks opposing entries.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">⚔</div>
+            <h3>Character &amp; Class Customization</h3>
+            <p>Rename your character profile, assign your primary profession, and filter quests tailored to your class.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">📖</div>
+            <h3>In-App Browser &amp; Cache</h3>
+            <p>Navigate hyperlinks and sublinks internally with full backward/forward history and resilient offline caching.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTIVE QUEST DOSSIER STATE -->
+      <div class="dossier-active" id="dossier-active" style="display: none;">
+        <!-- DOSSIER TOP BAR -->
+        <div class="dossier-top-bar">
+          <div class="dossier-header-info">
+            <div class="dossier-badges-row">
+              <span class="badge-chip campaign-chip" id="dossier-campaign-badge">CAMPAIGN</span>
+              <span class="badge-chip location-chip" id="dossier-location-badge">LOCATION</span>
+              <span class="badge-chip prof-chip" id="dossier-prof-badge">PROFESSION</span>
+              <span class="badge-chip status-chip" id="dossier-status-badge">NOT STARTED</span>
+            </div>
+            <div class="dossier-title-row">
+              <h2 class="dossier-quest-title" id="dossier-title">Quest Name</h2>
+              <!-- Completed Quest Timestamp -->
+              <div class="dossier-timestamp" id="dossier-timestamp" style="display: none;">Completed: --</div>
+            </div>
+          </div>
+
+          <div class="dossier-actions-bar">
+            <!-- Synchronized Tri-State Status Selector -->
+            <div class="status-btn-group">
+              <button class="status-pill-btn" data-status="0" id="btn-set-not-started">Not Started</button>
+              <button class="status-pill-btn" data-status="1" id="btn-set-in-progress">In Progress</button>
+              <button class="status-pill-btn" data-status="2" id="btn-set-completed">Completed</button>
+            </div>
+            <div class="dossier-utility-btns">
+              <button class="action-outline-btn" id="btn-dossier-hide">Hide Quest</button>
+              <button class="action-outline-btn" id="btn-dossier-external" title="Reload / View In-App Wiki Article">View Article</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MUTUALLY EXCLUSIVE WARNING BANNER -->
+        <div class="exclusive-warning-banner" id="exclusive-warning-banner" style="display: none;">
+          <span class="warning-icon">🔒</span>
+          <div class="warning-text">
+            <strong>Mutually Exclusive Quest:</strong>
+            <span id="exclusive-warning-details">This quest cannot be accepted because an opposing quest path is already active or completed.</span>
+          </div>
+        </div>
+
+        <!-- INTERNAL BROWSER NAVIGATION BAR -->
+        <div class="wiki-nav-toolbar" id="wiki-nav-toolbar">
+          <div class="wiki-nav-buttons">
+            <button class="wiki-nav-btn" id="btn-wiki-back" title="Go Back in Wiki History" disabled>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" shape-rendering="geometricPrecision"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <button class="wiki-nav-btn" id="btn-wiki-forward" title="Go Forward in Wiki History" disabled>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" shape-rendering="geometricPrecision"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <button class="wiki-nav-btn" id="btn-wiki-reload" title="Reload Article">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" shape-rendering="geometricPrecision"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+            </button>
+          </div>
+          <div class="wiki-nav-location">
+            <span class="wiki-nav-icon">📖</span>
+            <span class="wiki-nav-url" id="wiki-nav-url-display">wiki.guildwars.com</span>
+          </div>
+        </div>
+
+        <!-- WIKI WALKTHROUGH VIEWPORT -->
+        <div class="wiki-content-viewport" id="wiki-content-viewport">
+          <div class="wiki-loading-overlay" id="wiki-loading-overlay" style="display: none;">
+            <div class="spinner-ring"></div>
+            <span>Loading Wiki Intelligence...</span>
+          </div>
+
+          <!-- Synchronized Inline Wiki Entry Status Bar -->
+          <div class="wiki-sync-banner" id="wiki-sync-banner">
+            <div class="wiki-sync-left">
+              <span class="wiki-sync-dot" id="wiki-sync-dot"></span>
+              <span class="wiki-sync-label" id="wiki-sync-label">Wiki Entry Status: Not Started</span>
+              <span class="wiki-sync-time" id="wiki-sync-time"></span>
+            </div>
+            <div class="wiki-sync-controls" id="wiki-sync-controls">
+              <span class="wiki-sync-select-label">Update State:</span>
+              <div class="custom-select-wrapper wiki-sync-status-wrapper" id="wiki-inline-status-wrapper">
+                <button type="button" class="select-btn wiki-sync-select-btn" id="wiki-inline-status-btn">
+                  <span class="select-val" id="wiki-inline-status-label">Not Started</span>
+                  <span class="select-chevron">▼</span>
+                </button>
+                <div class="select-menu select-menu-animated modal-select-menu" id="wiki-inline-status-menu">
+                  <div class="select-item active" data-value="0">Not Started</div>
+                  <div class="select-item" data-value="1">In Progress</div>
+                  <div class="select-item" data-value="2">Completed</div>
+                </div>
+                <input type="hidden" id="wiki-inline-status-select" value="0">
+              </div>
+            </div>
+          </div>
+
+          <div class="wiki-article-body" id="wiki-article-body"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODALS -->
+
+  <!-- Setup Wizard Modal -->
+  <div class="modal-backdrop" id="modal-initial-setup" style="display: none;">
+    <div class="modal-card modal-card-wide">
+      <div class="modal-header">
+        <div class="brand">
+          <div class="brand-crest">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" shape-rendering="geometricPrecision">
+              <path d="M12 2L3 7v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V7l-9-5z"/>
+              <path d="M12 8v8M8 12h8"/>
+            </svg>
+          </div>
+          <h3>Welcome to Guild Wars Reforged Tracker</h3>
+        </div>
+      </div>
+      <div class="modal-body modal-body-scrollable">
+        <p class="modal-helper-note">Let's set up your character and display preferences. You can adjust all preferences anytime using the gear icon in the top header.</p>
+
+        <div class="setting-group">
+          <label class="setting-title">1. Initial Character Profile</label>
+          <div class="input-form-group">
+            <label for="setup-profile-name">Character Name</label>
+            <input type="text" id="setup-profile-name" placeholder="Enter your character's name..." value="Hero" maxlength="32">
+          </div>
+          <div class="input-form-group">
+            <label>Primary Profession</label>
+            <div class="custom-select-wrapper" id="setup-profile-prof-wrapper">
+              <button type="button" class="select-btn modal-select-btn" id="setup-profile-prof-btn">
+                <span class="select-val" id="setup-profile-prof-label">All Professions</span>
+                <span class="select-chevron">▼</span>
+              </button>
+              <div class="select-menu select-menu-animated modal-select-menu" id="setup-profile-prof-menu"></div>
+            </div>
+            <input type="hidden" id="setup-profile-prof-value" value="All Professions">
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-title">2. Status Color Scheme</label>
+          <div class="scheme-options-grid">
+            <label class="scheme-option-card active" id="card-setup-scheme-classic">
+              <input type="radio" name="setup-color-scheme" value="classic" checked id="setup-scheme-classic">
+              <div class="scheme-radio-indicator"><div class="scheme-radio-dot"></div></div>
+              <div class="scheme-card-content">
+                <strong>Classic Palette</strong>
+                <span class="scheme-desc">In Progress: <b style="color: #4CAF50;">Emerald</b> &bull; Completed: <b style="color: #D4AF37;">GW Gold</b></span>
+              </div>
+            </label>
+            <label class="scheme-option-card" id="card-setup-scheme-alternate">
+              <input type="radio" name="setup-color-scheme" value="alternate" id="setup-scheme-alternate">
+              <div class="scheme-radio-indicator"><div class="scheme-radio-dot"></div></div>
+              <div class="scheme-card-content">
+                <strong>Alternate Palette (Yellow / Green)</strong>
+                <span class="scheme-desc">In Progress: <b style="color: #F59E0B;">Amber Yellow</b> &bull; Completed: <b style="color: #10B981;">Vibrant Green</b></span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-title">3. Hardware &amp; Performance</label>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="toggle-main-label">Low GPU / Hardware Performance Mode</span>
+              <span class="toggle-sub-label">Disables background ambient canvas and blur shaders to minimize GPU power usage</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="setup-low-gpu">
+              <span class="slider round"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" id="btn-finish-setup">Save Preferences &amp; Start Questing</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-backdrop" id="modal-settings" style="display: none;">
+    <div class="modal-card modal-card-wide">
+      <div class="modal-header">
+        <h3>Configuration &amp; System Preferences</h3>
+        <button class="modal-close-btn" data-modal="modal-settings">✕</button>
+      </div>
+      <div class="modal-body modal-body-scrollable">
+        <!-- Display & Color Palette -->
+        <div class="setting-group">
+          <label class="setting-title">1. Appearance &amp; Status Color Scheme</label>
+          <div class="scheme-options-grid">
+            <label class="scheme-option-card active" id="card-scheme-classic">
+              <input type="radio" name="color-scheme" value="classic" checked id="scheme-classic-radio">
+              <div class="scheme-radio-indicator"><div class="scheme-radio-dot"></div></div>
+              <div class="scheme-card-content">
+                <strong>Classic Palette</strong>
+                <span class="scheme-desc">In Progress: <b style="color: #4CAF50;">Emerald</b> &bull; Completed: <b style="color: #D4AF37;">GW Gold</b></span>
+                <div class="scheme-preview-bar">
+                  <span class="preview-dot" style="background: #4CAF50;"></span>
+                  <span class="preview-dot" style="background: #D4AF37;"></span>
+                </div>
+              </div>
+            </label>
+
+            <label class="scheme-option-card" id="card-scheme-alternate">
+              <input type="radio" name="color-scheme" value="alternate" id="scheme-alternate-radio">
+              <div class="scheme-radio-indicator"><div class="scheme-radio-dot"></div></div>
+              <div class="scheme-card-content">
+                <strong>Alternate Palette (Yellow / Green)</strong>
+                <span class="scheme-desc">In Progress: <b style="color: #F59E0B;">Amber Yellow</b> &bull; Completed: <b style="color: #10B981;">Vibrant Green</b></span>
+                <div class="scheme-preview-bar">
+                  <span class="preview-dot" style="background: #F59E0B;"></span>
+                  <span class="preview-dot" style="background: #10B981;"></span>
+                </div>
+              </div>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="toggle-main-label">Dark Mode Interface &amp; Wiki Reader</span>
+              <span class="toggle-sub-label">Disable to switch the application and Wiki view to high-contrast Light Mode</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-dark-mode" checked>
+              <span class="slider round"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="toggle-main-label">Quest Journal Card Density</span>
+              <span class="toggle-sub-label">Adjust vertical spacing of quest entries in the journal column</span>
+            </div>
+            <div class="custom-select-wrapper settings-custom-select-wrapper" id="density-select-wrapper">
+              <button type="button" class="select-btn modal-select-btn" id="density-select-btn">
+                <span class="select-val" id="density-select-label">Comfortable</span>
+                <span class="select-chevron">▼</span>
+              </button>
+              <div class="select-menu select-menu-animated modal-select-menu" id="density-select-menu">
+                <div class="select-item active" data-value="comfortable">Comfortable</div>
+                <div class="select-item" data-value="compact">Compact</div>
+              </div>
+              <input type="hidden" id="density-select-value" value="comfortable">
+            </div>
+          </div>
+        </div>
+
+        <!-- Performance & Hardware Settings -->
+        <div class="setting-group">
+          <label class="setting-title">2. Performance &amp; GPU Resource Optimization</label>
+
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="toggle-main-label">Low GPU / Hardware Performance Mode</span>
+              <span class="toggle-sub-label">Reduces GPU consumption by disabling ambient canvas, blur shaders, and wave loops</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-low-gpu">
+              <span class="slider round"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="toggle-main-label">Animation Intensity &amp; Frequency</span>
+              <span class="toggle-sub-label">Controls dropdown transitions and UI animation physics</span>
+            </div>
+            <div class="custom-select-wrapper settings-custom-select-wrapper" id="anim-select-wrapper">
+              <button type="button" class="select-btn modal-select-btn" id="anim-select-btn">
+                <span class="select-val" id="anim-select-label">Moderated (Balanced)</span>
+                <span class="select-chevron">▼</span>
+              </button>
+              <div class="select-menu select-menu-animated modal-select-menu" id="anim-select-menu">
+                <div class="select-item" data-value="full">Full Animations (Smooth Transitions)</div>
+                <div class="select-item active" data-value="reduced">Moderated (Balanced)</div>
+                <div class="select-item" data-value="minimal">Minimal / Instant</div>
+              </div>
+              <input type="hidden" id="anim-select-value" value="reduced">
+            </div>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="toggle-main-label">Mouse Cursor Trailing Light Effect</span>
+              <span class="toggle-sub-label">Configure or disable the radial spotlight halo following the cursor</span>
+            </div>
+            <div class="custom-select-wrapper settings-custom-select-wrapper" id="cursor-select-wrapper">
+              <button type="button" class="select-btn modal-select-btn" id="cursor-select-btn">
+                <span class="select-val" id="cursor-select-label">Subtle (Low Opacity)</span>
+                <span class="select-chevron">▼</span>
+              </button>
+              <div class="select-menu select-menu-animated modal-select-menu" id="cursor-select-menu">
+                <div class="select-item" data-value="off">Off (Disabled)</div>
+                <div class="select-item active" data-value="subtle">Subtle (Low Opacity)</div>
+                <div class="select-item" data-value="standard">Standard</div>
+              </div>
+              <input type="hidden" id="cursor-select-value" value="subtle">
+            </div>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="toggle-main-label">Fluid Progress Bar Wave Motion</span>
+              <span class="toggle-sub-label">Animate continuous liquid wave surface on the campaign progress bar</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-liquid-wave" checked>
+              <span class="slider round"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Journal & Progression Options -->
+        <div class="setting-group">
+          <label class="setting-title">3. Quest Journal &amp; Tracking Behavior</label>
+
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="toggle-main-label">Show Mutually Exclusive Locked Quests</span>
+              <span class="toggle-sub-label">Display opposing locked quests grayed out in the quest list</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-show-locked" checked>
+              <span class="slider round"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="toggle-main-label">Show Manually Hidden Quests</span>
+              <span class="toggle-sub-label">Include quests you have hidden in the journal list</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-show-hidden">
+              <span class="slider round"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="toggle-main-label">Auto-Close with Guild Wars (Gw.exe)</span>
+              <span class="toggle-sub-label">Automatically close the tracker when the Guild Wars client exits</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-auto-close">
+              <span class="slider round"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Character & Data Management -->
+        <div class="setting-group">
+          <label class="setting-title">4. Character &amp; Database Maintenance</label>
+          <div class="maintenance-actions-row">
+            <button class="btn-primary" id="btn-settings-qr-sync" style="background: linear-gradient(135deg, #D4AF37 0%, #B8860B 100%); color: #000; font-weight: 700; border: none;">Mobile Companion (QR Sync)</button>
+            <button class="btn-secondary" id="btn-settings-rename-char">Edit / Rename Character</button>
+            <button class="btn-secondary" id="btn-settings-unhide-all">Unhide All Quests</button>
+            <button class="btn-secondary" id="btn-settings-clear-cache">Clear Wiki Cache</button>
+            <button class="btn-secondary" id="btn-settings-reopen-setup">Open Setup Wizard</button>
+            <button class="btn-secondary" id="btn-settings-export-data">Export Data (JSON)</button>
+            <button class="btn-secondary" id="btn-settings-import-data">Import Data (JSON)</button>
+            <button class="btn-secondary" id="btn-settings-check-updates">Check for Updates</button>
+          </div>
+          <input type="file" id="import-file-input" accept=".json" style="display: none;">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary modal-close-btn" data-modal="modal-settings">Cancel</button>
+        <button class="btn-primary" id="btn-save-settings">Save Preferences</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Profile Modal -->
+  <div class="modal-backdrop" id="modal-new-profile" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>New Character Profile</h3>
+        <button class="modal-close-btn" data-modal="modal-new-profile">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="input-form-group">
+          <label for="new-profile-input">Character Name</label>
+          <input type="text" id="new-profile-input" placeholder="e.g. Gwen Thackeray" maxlength="32">
+        </div>
+        <div class="input-form-group">
+          <label>Primary Profession</label>
+          <div class="custom-select-wrapper" id="new-profile-prof-wrapper">
+            <button type="button" class="select-btn modal-select-btn" id="new-profile-prof-btn">
+              <span class="select-val" id="new-profile-prof-label">All Professions</span>
+              <span class="select-chevron">▼</span>
+            </button>
+            <div class="select-menu select-menu-animated modal-select-menu" id="new-profile-prof-menu"></div>
+          </div>
+          <input type="hidden" id="new-profile-prof-value" value="All Professions">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary modal-close-btn" data-modal="modal-new-profile">Cancel</button>
+        <button class="btn-primary" id="btn-confirm-create-profile">Create Character</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Profile Modal -->
+  <div class="modal-backdrop" id="modal-edit-profile" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Edit Character Profile</h3>
+        <button class="modal-close-btn" data-modal="modal-edit-profile">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-helper-note">Modify your character's display name and primary profession. All quest progression is preserved.</p>
+        <div class="input-form-group">
+          <label for="edit-profile-input">Character Name</label>
+          <input type="text" id="edit-profile-input" placeholder="Enter character name..." maxlength="32">
+        </div>
+        <div class="input-form-group">
+          <label>Primary Profession</label>
+          <div class="custom-select-wrapper" id="edit-profile-prof-wrapper">
+            <button type="button" class="select-btn modal-select-btn" id="edit-profile-prof-btn">
+              <span class="select-val" id="edit-profile-prof-label">All Professions</span>
+              <span class="select-chevron">▼</span>
+            </button>
+            <div class="select-menu select-menu-animated modal-select-menu" id="edit-profile-prof-menu"></div>
+          </div>
+          <input type="hidden" id="edit-profile-prof-value" value="All Professions">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary modal-close-btn" data-modal="modal-edit-profile">Cancel</button>
+        <button class="btn-primary" id="btn-confirm-edit-profile">Save Character Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- About Modal -->
+  <div class="modal-backdrop" id="modal-about" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Guild Wars Reforge Tracker</h3>
+        <button class="modal-close-btn" data-modal="modal-about">✕</button>
+      </div>
+      <div class="modal-body legal-text">
+        <p><strong>Version: 1.0.3</strong> (Tactician &amp; Vanguard Edition)</p>
+        <p>Crafted by Akito</p>
+        <p>A high-performance desktop quest companion featuring internal Wiki navigation, campaign progression tracking, and resilient offline caching.</p>
+        <hr>
+        <p class="legal-heading">LEGAL NOTICE</p>
+        <p>&bull; This fan-made tool is not affiliated with, endorsed, sponsored, or approved by ArenaNet, LLC or NCSoft Corporation.</p>
+        <p>&bull; 'Guild Wars', 'ArenaNet', 'NCSoft', and all associated logos are trademarks of NCSoft Corporation.</p>
+        <p>&bull; Content is property of their respective owners and the Guild Wars Wiki community (GNU FDL 1.2).</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary modal-close-btn" data-modal="modal-about">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Release Notes Modal -->
+  <div class="modal-backdrop" id="modal-release-notes" style="display: none;">
+    <div class="modal-card modal-card-wide">
+      <div class="modal-header">
+        <div class="release-modal-header-left">
+          <h3>Release Notes &amp; Updates</h3>
+          <span class="release-version-pill" id="release-current-version-pill">v1.0.3</span>
+        </div>
+        <button class="modal-close-btn" data-modal="modal-release-notes">✕</button>
+      </div>
+      <div class="modal-body modal-body-scrollable">
+        <div class="update-check-banner" id="update-check-banner">
+          <div class="update-banner-info">
+            <span class="update-status-icon" id="update-status-icon">✓</span>
+            <div>
+              <strong id="update-status-title">Up to date</strong>
+              <div class="update-status-sub" id="update-status-sub">Guild Wars Reforge Tracker v1.0.3 is currently the latest version.</div>
+            </div>
+          </div>
+          <button class="btn-secondary" id="btn-check-updates-now">Check for Updates</button>
+        </div>
+
+        <div class="release-history-container" id="release-history-container">
+          <!-- Populated by JavaScript from GitHub releases / fallbacks -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="btn-open-github-releases">Open GitHub Releases ↗</button>
+        <button class="btn-primary modal-close-btn" data-modal="modal-release-notes">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Companion QR Sync Modal -->
+  <div class="modal-backdrop" id="modal-qr-sync" style="display: none;">
+    <div class="modal-card modal-card-qr">
+      <div class="modal-header">
+        <div class="modal-header-title-group" style="display: flex; align-items: center; gap: 8px;">
+          <h3>Mobile Companion QR Sync</h3>
+          <span class="qr-status-pill">● Local Sync Ready</span>
+        </div>
+        <button class="modal-close-btn" data-modal="modal-qr-sync">✕</button>
+      </div>
+      <div class="modal-body qr-modal-body">
+        <p class="qr-guide-text" style="font-size: 12.5px; color: var(--text-secondary); text-align: center;">Scan this QR code with your phone or tablet camera to open the companion app. Quest progress synchronizes in real time.</p>
+        
+        <div class="qr-display-wrapper">
+          <div id="qr-code-canvas" class="qr-code-canvas"></div>
+        </div>
+
+        <div class="qr-details-card">
+          <div class="qr-detail-row">
+            <span class="qr-detail-label">Pairing Room:</span>
+            <span class="qr-detail-val" id="qr-room-code">GW-SYNC</span>
+          </div>
+          <div class="qr-detail-row">
+            <span class="qr-detail-label">Sync URL:</span>
+            <input type="text" readonly id="qr-pairing-url" class="qr-url-input" value="http://127.0.0.1:8848">
+            <button class="btn-secondary" id="btn-copy-pairing-url" style="padding: 2px 10px; font-size: 11px;">Copy</button>
+          </div>
+        </div>
+        <p class="qr-hint-sub" style="font-size: 11px; color: var(--text-muted); text-align: center;">Keep this desktop tracker open. Both devices must be connected to the same local network or Wi-Fi.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary modal-close-btn" data-modal="modal-qr-sync">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div class="modal-backdrop" id="modal-confirm" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="confirm-modal-title">Confirm Action</h3>
+        <button class="modal-close-btn" data-modal="modal-confirm">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirm-modal-message">Are you sure you want to proceed?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary modal-close-btn" data-modal="modal-confirm">Cancel</button>
+        <button class="btn-danger" id="btn-confirm-ok">Yes, Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="assets/qwebchannel.js"></script>
+  <script src="assets/anime.min.js"></script>
+  <script src="assets/qrcode.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

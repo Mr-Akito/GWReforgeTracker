@@ -1,9 +1,7 @@
-Core application dependencies
-
+# Core application dependencies
 PySide6
 requests
 beautifulsoup4
 
-Build tool (Required only if they want to create the .exe)
-
+# Build tool (Required only if they want to create the .exe)
 pyinstaller

@@ -1,188 +1,34 @@
 # ui/tabs.py
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                             QProgressBar, QScrollArea, QPushButton, QFrame, QDialog, QSizePolicy)
-from PySide6.QtCore import QTimer, Signal, Qt, QPropertyAnimation, QEasingCurve
-from config import AppConfig, ThemeColors, QuestStatus, SECTION_MARKER, FilterMode
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+    QProgressBar, QScrollArea, QPushButton, QFrame, QDialog
+)
+from PySide6.QtCore import QTimer, Signal, Qt
+from config import AppConfig, ThemeColors, QuestStatus, SECTION_MARKER, FilterMode, Professions, ColorSchemeMode, MUTUALLY_EXCLUSIVE_QUESTS
 from .widgets import QuestWidget
 from .dialogs import CustomDialog
-
-class CollapsibleSection(QWidget):
-    def __init__(self, title, parent=None):
-        super().__init__(parent)
-        self.is_expanded = True
-        self.quests = []
-        
-        self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 10)
-        self.layout.setSpacing(0)
-
-        # --- Header Button ---
-        self.toggle_btn = QPushButton()
-        self.toggle_btn.setObjectName("SectionHeader")
-        self.toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.toggle_btn.setFixedHeight(40)
-        self.toggle_btn.setStyleSheet(f"""
-            QPushButton#SectionHeader {{
-                background-color: rgba(255, 255, 255, 0.03);
-                border: 1px solid rgba(255, 255, 255, 0.05);
-                border-radius: 8px;
-                text-align: left;
-                padding-left: 10px;
-            }}
-            QPushButton#SectionHeader:hover {{
-                background-color: rgba(255, 255, 255, 0.08);
-                border: 1px solid {ThemeColors.GOLD};
-            }}
-        """)
-        self.toggle_btn.clicked.connect(self.toggle)
-
-        btn_layout = QHBoxLayout(self.toggle_btn)
-        btn_layout.setContentsMargins(10, 0, 15, 0)
-        
-        self.arrow_label = QLabel("▼")
-        self.arrow_label.setStyleSheet(f"color: {ThemeColors.GOLD}; font-size: 10px; font-weight: bold;")
-        btn_layout.addWidget(self.arrow_label)
-        
-        title_clean = title.replace(SECTION_MARKER, "").strip()
-        self.title_label = QLabel(title_clean)
-        self.title_label.setStyleSheet(f"color: {ThemeColors.WHITE}; font-weight: bold; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;")
-        btn_layout.addWidget(self.title_label)
-        
-        btn_layout.addStretch()
-        
-        self.stats_label = QLabel("0/0")
-        self.stats_label.setStyleSheet(f"color: {ThemeColors.GREY}; font-size: 12px;")
-        btn_layout.addWidget(self.stats_label)
-        
-        self.layout.addWidget(self.toggle_btn)
-
-        # --- Wrapper (QScrollArea) ---
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setStyleSheet("background: transparent;")
-        
-        # --- Inner Content ---
-        self.content_area = QWidget()
-        self.content_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.content_area.setStyleSheet("background: transparent;")
-        
-        self.content_layout = QVBoxLayout(self.content_area)
-        self.content_layout.setContentsMargins(10, 5, 5, 5)
-        self.content_layout.setSpacing(6)
-        
-        self.scroll_area.setWidget(self.content_area)
-        self.layout.addWidget(self.scroll_area)
-        
-        # --- Animation ---
-        self.animation = QPropertyAnimation(self.scroll_area, b"maximumHeight")
-        self.animation.setDuration(300)
-        self.animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-        self.animation.finished.connect(self.on_animation_finished)
-        
-    def add_quest_widget(self, widget):
-        self.content_layout.addWidget(widget)
-        self.quests.append(widget)
-        self.update_stats()
-        if self.is_expanded:
-             self.refresh_geometry()
-
-    def refresh_geometry(self):
-        """Forces the wrapper to be exactly the height of the content, eliminating internal scrollbars."""
-        self.content_area.adjustSize()
-        h = self.content_area.sizeHint().height()
-        self.scroll_area.setMinimumHeight(h)
-        self.scroll_area.setMaximumHeight(h)
-
-    def update_stats(self):
-        total = 0
-        completed = 0
-        visible_count = 0
-        
-        for q in self.quests:
-            total += 1
-            if q.status == QuestStatus.COMPLETED:
-                completed += 1
-            if q.isVisible():
-                visible_count += 1
-        
-        color = ThemeColors.GREEN if (total > 0 and completed == total) else ThemeColors.GREY
-        self.stats_label.setStyleSheet(f"color: {color}; font-size: 12px;")
-        self.stats_label.setText(f"{completed}/{total}")
-        
-        return visible_count > 0
-
-    def toggle(self):
-        if self.is_expanded: self.collapse()
-        else: self.expand()
-
-    def collapse(self):
-        if not self.is_expanded: return
-        
-        current_h = self.scroll_area.height()
-        self.scroll_area.setMinimumHeight(0) 
-        self.scroll_area.setMaximumHeight(current_h) 
-        
-        self.animation.setStartValue(current_h)
-        self.animation.setEndValue(0)
-        self.animation.start()
-        
-        self.arrow_label.setText("▶")
-        self.is_expanded = False
-
-    def expand(self):
-        if self.is_expanded: return
-        
-        self.content_area.adjustSize()
-        target_h = self.content_area.sizeHint().height()
-        
-        self.scroll_area.setMinimumHeight(0)
-        self.scroll_area.setMaximumHeight(0) 
-        
-        self.animation.setStartValue(0)
-        self.animation.setEndValue(target_h)
-        self.animation.start()
-        
-        self.arrow_label.setText("▼")
-        self.is_expanded = True
-    
-    def on_animation_finished(self):
-        if self.is_expanded:
-            self.refresh_geometry()
-
-    def set_expanded(self, expand):
-        if expand:
-            self.arrow_label.setText("▼")
-            self.is_expanded = True
-            QTimer.singleShot(0, self.refresh_geometry)
-        else:
-            self.scroll_area.setMinimumHeight(0)
-            self.scroll_area.setMaximumHeight(0)
-            self.arrow_label.setText("▶")
-            self.is_expanded = False
 
 class CampaignTab(QWidget):
     quest_status_changed = Signal(str, int)
     reset_requested = Signal(str)
-    wiki_requested = Signal(str, object) 
+    wiki_requested = Signal(str)
+    hide_toggled = Signal(str, bool)
 
-    def __init__(self, campaign_name, quest_list, quest_status_data):
+    def __init__(self, campaign_name, quest_list, quest_status_data, quest_metadata=None, color_scheme=ColorSchemeMode.CLASSIC, locked_quests=None):
         super().__init__()
         self.campaign_name = campaign_name
         self.quest_widgets = [] 
         self.current_status_data = quest_status_data 
+        self.quest_metadata = quest_metadata or {}
+        self.sections = []
+        self.color_scheme = color_scheme
+        self.locked_quests = locked_quests or set()
         
-        self._cached_total = 0
-        self._cached_done = 0
-        
-        self.section_widgets = [] 
-        self.current_section_widget = None
-        
+        # State
         self.current_filter_text = ""
         self.current_filter_mode = FilterMode.ALL
+        self.current_profession_filter = Professions.ALL
+        self.show_hidden = False
         
         self.pending_quests = list(quest_list) if isinstance(quest_list, list) else []
         self.batch_timer = QTimer(self)
@@ -190,63 +36,79 @@ class CampaignTab(QWidget):
         self.batch_timer.timeout.connect(self._process_batch)
         
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 10, 0, 0)
+        layout.setContentsMargins(0, 10, 5, 0)
         
-        # --- Top Progress Bar ---
-        progress_layout = QHBoxLayout()
-        progress_layout.setSpacing(15)
-        progress_layout.addWidget(QLabel("Campaign Progress:", objectName="SubText"))
-        
+        header_layout = QHBoxLayout()
+        self.percent_label = QLabel("0%", objectName="H1")
+        self.update_percent_label_color()
+        header_layout.addWidget(self.percent_label)
+        header_layout.addWidget(QLabel(f"{campaign_name.upper()}", objectName="SubText"), alignment=Qt.AlignmentFlag.AlignBottom)
+        header_layout.addStretch()
+        layout.addLayout(header_layout)
+
         self.campaign_progress_bar = QProgressBar()
         self.campaign_progress_bar.setObjectName("CampBar")
-        self.campaign_progress_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.campaign_progress_bar.setFixedHeight(12) 
+        self.campaign_progress_bar.setFixedHeight(6)
         self.campaign_progress_bar.setTextVisible(False)
-        self.campaign_progress_bar.setStyleSheet(f"""
-            QProgressBar {{
-                background: rgba(255,255,255,0.1);
-                border: none;
-                border-radius: 6px; 
-            }}
-            QProgressBar::chunk {{
-                background-color: {ThemeColors.GOLD};
-                border-radius: 6px;
-            }}
-        """)
-        progress_layout.addWidget(self.campaign_progress_bar)
-        
-        self.percent_label = QLabel("0%", objectName="SubText")
-        self.percent_label.setStyleSheet(f"color: {ThemeColors.GOLD}; font-weight: bold;")
-        progress_layout.addWidget(self.percent_label)
-        
-        layout.addLayout(progress_layout)
-        layout.addSpacing(15)
+        layout.addWidget(self.campaign_progress_bar)
+        layout.addSpacing(12)
 
-        # --- Scroll Area ---
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff) 
         scroll_area.setStyleSheet("background: transparent;")
-        scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         
         self.content_widget = QWidget()
         self.content_widget.setStyleSheet("background: transparent;")
-        
         self.content_layout = QVBoxLayout(self.content_widget)
         self.content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.content_layout.setSpacing(10) 
-        self.content_layout.setContentsMargins(2, 0, 25, 10) 
+        self.content_layout.setSpacing(4)
+        self.content_layout.setContentsMargins(2, 0, 20, 0) 
 
         scroll_area.setWidget(self.content_widget)
         layout.addWidget(scroll_area)
         
-        reset_button = QPushButton(f"Reset {campaign_name}", objectName="DangerBtn")
+        reset_label = f"Reset All Quests" if campaign_name == "All" else f"Reset {campaign_name}"
+        reset_button = QPushButton(reset_label, objectName="DangerBtn")
         reset_button.setCursor(Qt.CursorShape.PointingHandCursor)
         reset_button.clicked.connect(self.reset_clicked)
         layout.addWidget(reset_button)
         
         self.batch_timer.start()
+
+    def update_percent_label_color(self):
+        colors = ThemeColors.get_status_colors(self.color_scheme)
+        self.percent_label.setStyleSheet(f"color: {colors['completed']}; font-size: 26px; font-weight: bold;")
+
+    def set_color_scheme(self, scheme):
+        self.color_scheme = scheme
+        self.update_percent_label_color()
+        colors = ThemeColors.get_status_colors(scheme)
+        self.campaign_progress_bar.setStyleSheet(f"""
+            QProgressBar#CampBar::chunk {{
+                border-radius: 3px;
+                background-color: {colors['completed']};
+            }}
+        """)
+        for qw in self.quest_widgets:
+            qw.set_color_scheme(scheme)
+
+    def set_locked_quests(self, locked_set):
+        self.locked_quests = locked_set or set()
+        for qw in self.quest_widgets:
+            is_locked = qw.quest_name in self.locked_quests
+            conflicting = self._find_conflicting_quest(qw.quest_name) if is_locked else ""
+            qw.set_locked(is_locked, conflicting)
+        self.update_progress()
+
+    def _find_conflicting_quest(self, quest_name):
+        if quest_name in MUTUALLY_EXCLUSIVE_QUESTS:
+            for partner in MUTUALLY_EXCLUSIVE_QUESTS[quest_name]:
+                val = self.current_status_data.get(partner)
+                if val and isinstance(val, dict) and val.get("status") == QuestStatus.COMPLETED:
+                    return partner
+        return "Mutually Exclusive Quest"
 
     def stop_loading(self):
         if self.batch_timer.isActive():
@@ -256,7 +118,7 @@ class CampaignTab(QWidget):
         if not self.pending_quests:
             self.batch_timer.stop()
             self.update_progress() 
-            self._initial_collapse_logic()
+            self.apply_filters()
             return
 
         self.content_widget.setUpdatesEnabled(False)
@@ -264,26 +126,15 @@ class CampaignTab(QWidget):
         count = 0
         while self.pending_quests and count < AppConfig.LAZY_LOAD_BATCH_SIZE:
             item = self.pending_quests.pop(0)
-            
             if SECTION_MARKER in item:
-                section = CollapsibleSection(item, self.content_widget)
-                self.content_layout.addWidget(section)
-                self.section_widgets.append(section)
-                self.current_section_widget = section
+                header_lbl = QLabel(item.replace(SECTION_MARKER, "").strip(), objectName="H2")
+                header_lbl.setParent(self.content_widget)
+                self.content_layout.addWidget(header_lbl)
+                self.sections.append({"header": header_lbl, "quests": []})
             else:
-                qw = self._create_quest_widget(item)
-                
-                self._cached_total += 1
-                if qw.status == QuestStatus.COMPLETED:
-                    self._cached_done += 1
-                    
-                if self.current_section_widget:
-                    self.current_section_widget.add_quest_widget(qw)
-                else:
-                    self.content_layout.addWidget(qw)
-                
-                self.quest_widgets.append(qw)
-                
+                qw = self._add_quest(item)
+                if self.sections:
+                    self.sections[-1]["quests"].append(qw)
             count += 1
             
         self.content_widget.setUpdatesEnabled(True)
@@ -293,138 +144,180 @@ class CampaignTab(QWidget):
         else:
             self.apply_filters()
 
-    def _create_quest_widget(self, name):
-        status_data = self._parse_status(name)
-        quest_widget = QuestWidget(name, status_data)
-        quest_widget.status_changed.connect(self._on_quest_changed)
-        quest_widget.request_load.connect(self.wiki_requested.emit)
-        return quest_widget
-
-    def _initial_collapse_logic(self):
-        for i, section in enumerate(self.section_widgets):
-            has_active = False
-            for q in section.quests:
-                if q.status == QuestStatus.IN_PROGRESS:
-                    has_active = True
-                    break
-            
-            if i == 0 or has_active:
-                section.set_expanded(True)
-            else:
-                section.set_expanded(False)
-
     def _parse_status(self, quest_name):
         val = self.current_status_data.get(quest_name)
         if val is None or not isinstance(val, dict):
-             return {"status": QuestStatus.NOT_STARTED, "timestamp": None}
+            return {"status": QuestStatus.NOT_STARTED, "timestamp": None, "is_hidden": False}
         return val
 
+    def _matches_profession(self, quest_name):
+        if self.current_profession_filter == Professions.ALL:
+            return True
+        meta = self.quest_metadata.get(quest_name, {})
+        req = meta.get("profession", "").lower()
+        if not req:
+            return True # Available to all
+        prof_term = self.current_profession_filter.lower()
+        return prof_term in req
+
     def get_progress_stats(self):
-        pending_count = 0
-        pending_done = 0
+        completed = 0
+        total = 0
         
+        # Count loaded widgets
+        for qw in self.quest_widgets:
+            if not self._matches_profession(qw.quest_name):
+                continue
+            if qw.is_hidden and not self.show_hidden:
+                continue
+            # If mutually exclusive and locked, exclude from total available
+            if qw.is_locked:
+                continue
+            total += 1
+            if qw.status == QuestStatus.COMPLETED: 
+                completed += 1
+                
+        # Count pending quests
         for item in self.pending_quests:
             if SECTION_MARKER in item: continue
-            pending_count += 1
+            if not self._matches_profession(item):
+                continue
             status_data = self._parse_status(item)
-            if status_data["status"] == QuestStatus.COMPLETED:
-                pending_done += 1
-        
-        return (self._cached_done + pending_done), (self._cached_total + pending_count)
+            if status_data.get("is_hidden") and not self.show_hidden:
+                continue
+            if item in self.locked_quests:
+                continue
+            total += 1
+            if status_data.get("status") == QuestStatus.COMPLETED: 
+                completed += 1
+                
+        return completed, total
 
-    def refresh_tab_state(self, current_data):
+    def refresh_tab_state(self, current_data, locked_set=None):
         self.current_status_data = current_data
-        
-        self.content_widget.setUpdatesEnabled(False)
-        
-        self._cached_total = 0
-        self._cached_done = 0
-        
-        for quest_widget in self.quest_widgets:
-            quest_name = quest_widget.quest_button.text()
-            status_data = self._parse_status(quest_name)
-            quest_widget.refresh_data(status_data)
+        if locked_set is not None:
+            self.locked_quests = locked_set
             
-            self._cached_total += 1
-            if status_data.get("status") == QuestStatus.COMPLETED:
-                self._cached_done += 1
-        
-        self.content_widget.setUpdatesEnabled(True)
-        
+        for quest_widget in self.quest_widgets:
+            quest_name = quest_widget.quest_name
+            status_data = self._parse_status(quest_name)
+            is_locked = quest_name in self.locked_quests
+            conflicting = self._find_conflicting_quest(quest_name) if is_locked else ""
+            quest_widget.refresh_data(status_data, is_locked=is_locked, conflicting_quest=conflicting)
+            
         self.update_progress()
         self.apply_filters()
         
-    def _on_quest_changed(self, name, status):
-        self._cached_done = 0
-        self._cached_total = 0
-        for qw in self.quest_widgets:
-            self._cached_total += 1
-            if qw.status == QuestStatus.COMPLETED:
-                self._cached_done += 1
+    def _add_quest(self, name):
+        status_data = self._parse_status(name)
+        meta = self.quest_metadata.get(name, {})
         
+        is_locked = name in self.locked_quests
+        conflicting = self._find_conflicting_quest(name) if is_locked else ""
+        
+        quest_widget = QuestWidget(
+            name, status_data, metadata=meta,
+            color_scheme=self.color_scheme,
+            parent=self.content_widget
+        )
+        quest_widget.original_index = len(self.quest_widgets)
+        if is_locked:
+            quest_widget.set_locked(True, conflicting)
+        
+        quest_widget.status_changed.connect(self._on_quest_changed)
+        quest_widget.request_load.connect(self.wiki_requested.emit)
+        quest_widget.hide_toggled.connect(self._on_hide_toggled)
+        
+        self.content_layout.addWidget(quest_widget)
+        self.quest_widgets.append(quest_widget)
+        return quest_widget
+
+    def _on_quest_changed(self, name, status):
         self.quest_status_changed.emit(name, status)
         self.update_progress()
         if self.current_filter_mode != FilterMode.ALL:
             self.apply_filters()
 
+    def _on_hide_toggled(self, name, is_hidden):
+        self.hide_toggled.emit(name, is_hidden)
+        self.update_progress()
+        self.apply_filters()
+
     def set_filter_mode(self, mode):
         self.current_filter_mode = mode
         self.apply_filters()
 
+    def set_profession_filter(self, prof):
+        self.current_profession_filter = prof
+        self.apply_filters()
+        self.update_progress()
+
+    def set_show_hidden(self, show):
+        self.show_hidden = show
+        self.apply_filters()
+        self.update_progress()
+
     def filter_content(self, text):
-        self.current_filter_text = text.lower()
+        self.current_filter_text = text.lower().strip()
         self.apply_filters()
 
     def apply_filters(self):
         self.content_widget.setUpdatesEnabled(False)
+        
         mode = self.current_filter_mode
         search = self.current_filter_text
+        prof = self.current_profession_filter
         
-        for section in self.section_widgets:
+        for section in self.sections:
             section_has_visible = False
-            
-            for qw in section.quests:
+            for qw in section['quests']:
+                # 1. Search text match
                 text_match = True
                 if search:
-                    text_match = search in qw.quest_button.text().lower()
+                    text_match = search in qw.quest_name.lower()
                 
+                # 2. Status match
                 status_match = True
-                if mode == FilterMode.ACTIVE_ONLY:
-                     status_match = (qw.status != QuestStatus.COMPLETED)
-                elif mode == FilterMode.NOT_STARTED:
+                if mode == FilterMode.NOT_STARTED:
                     status_match = (qw.status == QuestStatus.NOT_STARTED)
                 elif mode == FilterMode.IN_PROGRESS:
                     status_match = (qw.status == QuestStatus.IN_PROGRESS)
                 elif mode == FilterMode.COMPLETED:
                     status_match = (qw.status == QuestStatus.COMPLETED)
                 
-                is_visible = text_match and status_match
+                # 3. Profession match
+                prof_match = self._matches_profession(qw.quest_name)
+                
+                # 4. Hidden match
+                hide_match = True
+                if qw.is_hidden and not self.show_hidden:
+                    hide_match = False
+                
+                is_visible = text_match and status_match and prof_match and hide_match
                 qw.setVisible(is_visible)
+                
                 if is_visible:
                     section_has_visible = True
             
-            section.setVisible(section_has_visible)
-            if section_has_visible:
-                section.update_stats()
-                if search and not section.is_expanded:
-                    section.expand()
-                elif section.is_expanded:
-                    section.refresh_geometry()
-
+            if section['header']:
+                section['header'].setVisible(section_has_visible)
+                
         self.content_widget.setUpdatesEnabled(True)
 
     def reset_clicked(self):
-        dlg = CustomDialog("Confirm Reset", f"Are you sure you want to reset all progress for {self.campaign_name}?", self)
+        target = "ALL campaigns" if self.campaign_name == "All" else f"the {self.campaign_name} campaign"
+        dlg = CustomDialog("Confirm Reset", f"Are you sure you want to reset all quest progress for {target}?", self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             self.reset_requested.emit(self.campaign_name)
 
     def update_progress(self):
         done, total = self.get_progress_stats()
-        if total > 0:
-            percent = int((done/total)*100)
-            self.percent_label.setText(f"{percent}%")
-            self.campaign_progress_bar.setMaximum(total)
-            self.campaign_progress_bar.setValue(done)
-            
-        for section in self.section_widgets:
-            section.update_stats()
+        if total == 0:
+            self.percent_label.setText("100%" if done > 0 else "0%")
+            self.campaign_progress_bar.setMaximum(1)
+            self.campaign_progress_bar.setValue(1 if done > 0 else 0)
+            return
+        percent = int((done / total) * 100)
+        self.percent_label.setText(f"{percent}%")
+        self.campaign_progress_bar.setMaximum(total)
+        self.campaign_progress_bar.setValue(done)
