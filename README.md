@@ -4,6 +4,8 @@
 
 Created by: Akito
 
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-yellow?style=flat&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/mr.akito)
+
 A desktop quest journal and progression tracker for Guild Wars. Built using **PySide6** and **Qt WebEngine** featuring a modern, hardware-accelerated dark presentation theme, responsive typography, and smooth CSS transitions.
 
 ---
